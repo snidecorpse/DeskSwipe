@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DeckSweep</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee:wght@400&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="bg-orb orb-one"></div>
+  <div class="bg-orb orb-two"></div>
+  <div class="bg-grid"></div>
+
+  <section id="splashOverlay" class="splash-overlay">
+    <article class="splash-card">
+      <div class="splash-brand">DeckSweep</div>
+      <div class="splash-head">
+        <div class="splash-alert">!</div>
+        <div>
+          <h1>Welcome to DeckSweep</h1>
+          <p>Clean your folders like a game, with safety first.</p>
+        </div>
+      </div>
+      <div class="splash-grid">
+        <section>
+          <h2>How It Works</h2>
+          <ol>
+            <li>Choose a folder root (Downloads by default).</li>
+            <li>Swipe right to keep, left to queue for recycle bin.</li>
+            <li>Tap folder cards to enter subdecks and sort inside.</li>
+            <li>Review everything before any recycle-bin move.</li>
+          </ol>
+          <h3>Controls</h3>
+          <ul>
+            <li><strong>Arrow Right:</strong> Keep</li>
+            <li><strong>Arrow Left:</strong> Delete queue</li>
+            <li><strong>Arrow Up:</strong> Enter folder</li>
+            <li><strong>Space:</strong> Flip card</li>
+          </ul>
+        </section>
+        <section>
+          <h2>Safety & Privacy</h2>
+          <ol>
+            <li><strong>Purely local:</strong> data stays on your PC.</li>
+            <li><strong>No cloud upload:</strong> no folder contents are sent out.</li>
+            <li><strong>Recycle Bin only:</strong> delete actions move items to Recycle Bin.</li>
+            <li><strong>Manual final apply:</strong> nothing is moved until you confirm.</li>
+            <li><strong>Scoped scan:</strong> only the selected root folder is processed.</li>
+            <li><strong>Safer defaults:</strong> symlinks/junctions are skipped.</li>
+          </ol>
+          <p class="muted splash-note">
+            Always review queued items before apply if your files are sensitive.
+          </p>
+        </section>
+      </div>
+      <div class="splash-actions">
+        <label class="splash-checkbox">
+          <input id="splashDontShow" type="checkbox">
+          Do not show again on this device
+        </label>
+        <label class="splash-checkbox splash-ack">
+          <input id="splashAcknowledge" type="checkbox">
+          I acknowledge I am solely responsible for reviewing decisions and recovering items from Recycle Bin. DeckSweep queues moves to Recycle Bin and does not guarantee recovery for user mistakes, external system cleanup, storage failures, or third-party interference.
+        </label>
+        <button id="splashStartBtn" class="action-btn" disabled>Start</button>
+      </div>
+    </article>
+  </section>
+
+  <div class="app-shell">
+    <header class="topbar-row">
+      <div class="title-box">
+        <div class="brand">
+          <div class="brand-title">DeckSweep</div>
+          <div class="brand-subtitle">Swipe Your Clutter Into Oblivion</div>
+        </div>
+        <div class="status-inline">
+          Session: <span id="sessionStatus">Idle</span>
+        </div>
+      </div>
+      <div id="rootPanel" class="session-controls top-controls">
+        <label class="root-label" for="rootPathInput">Folder Root</label>
+        <div class="folder-input-row">
+          <input id="rootPathInput" type="text" placeholder="C:\Users\You\Downloads">
+          <button id="browsePathBtn" class="ghost-btn">Browse</button>
+        </div>
+        <div class="control-row">
+          <select id="sortModeSelect">
+            <option value="random">Random</option>
+            <option value="size_desc">Largest First</option>
+            <option value="newest">Newest First</option>
+          </select>
+          <button id="startSessionBtn" class="action-btn">Start Session</button>
+          <button id="resumeBtn" class="ghost-btn">Resume Latest</button>
+        </div>
+      </div>
+    </header>
+
+    <nav class="tabs">
+      <div class="tabs-main">
+        <button class="tab-btn active" data-tab="tab-deck">DeckSweep</button>
+        <button class="tab-btn" data-tab="tab-review">Review Queue</button>
+        <button class="tab-btn" data-tab="tab-summary">Session Summary</button>
+      </div>
+      <button class="tab-btn settings-tab" data-tab="tab-settings">Settings</button>
+    </nav>
+
+    <main class="tab-panels">
+      <section id="tab-deck" class="tab-panel active">
+        <div class="workspace">
+          <section id="mainDeckPanel" class="deck-column">
+            <div class="hud">
+              <div class="hud-item"><span>Indexed</span><strong id="indexedCount">0</strong></div>
+              <div class="hud-item"><span>Score</span><strong id="scoreCount">0</strong></div>
+              <div class="hud-item"><span>Streak</span><strong id="streakCount">0</strong></div>
+              <div class="hud-item"><span>Reclaimable</span><strong id="reclaimableCount">0 B</strong></div>
+            </div>
+
+            <div class="deck-path">
+              <button id="backDeckBtn" class="ghost-btn" disabled>Back</button>
+              <span id="deckPathLabel">Main Deck</span>
+            </div>
+
+            <div class="card-stage" id="cardStage">
+              <div class="stack-shadow stack-shadow-back"></div>
+              <div class="stack-shadow stack-shadow-mid"></div>
+              <article id="flashcard" class="flashcard hidden">
+                <div class="swipe-hint left">DELETE</div>
+                <div class="swipe-hint right">KEEP</div>
+                <div class="flashcard-inner">
+                  <section class="face face-front">
+                    <div class="card-head">
+                      <img id="cardIcon" class="item-icon card-icon" alt="File icon">
+                      <div class="card-kind" id="cardKindBadge">File</div>
+                    </div>
+                    <h2 id="cardName">No card loaded</h2>
+                    <p id="cardPath"></p>
+                    <div class="card-size" id="cardSize">0 B</div>
+                  </section>
+                  <section class="face face-back">
+                    <h3>Card Intel</h3>
+                    <ul class="properties">
+                      <li><span>Type</span><strong id="propType">-</strong></li>
+                      <li><span>MIME</span><strong id="propMime">-</strong></li>
+                      <li><span>Size</span><strong id="propSize">-</strong></li>
+                      <li><span>% of Root</span><strong id="propPercent">-</strong></li>
+                      <li><span>Modified</span><strong id="propModified">-</strong></li>
+                    </ul>
+                    <p class="hint">Tap card to flip back.</p>
+                  </section>
+                </div>
+              </article>
+
+              <div id="emptyDeckState" class="empty-state">
+                <h2>Deck Empty</h2>
+                <p>Start a session, or switch to Review Queue.</p>
+              </div>
+            </div>
+
+            <div class="controls">
+              <button id="keepBtn" class="keep">Keep (->)</button>
+              <button id="deleteBtn" class="delete">Delete Queue (<-)</button>
+              <button id="enterBtn" class="ghost-btn">Enter Folder</button>
+              <button id="skipBtn" class="ghost-btn">Skip Folder</button>
+              <button id="openBtn" class="ghost-btn">Show in Explorer</button>
+            </div>
+
+            <div class="review-actions">
+              <button id="reviewBtn" class="action-btn">Go to Review Queue</button>
+              <button id="applyBtn" class="danger-btn">Move Queue To Recycle Bin</button>
+            </div>
+          </section>
+
+          <aside class="preview-column">
+            <section class="preview-main">
+              <div class="preview-head">
+                <h2>Preview Bay</h2>
+                <img id="previewIcon" class="item-icon preview-icon" alt="Preview icon">
+              </div>
+              <div id="previewContainer" class="preview-container">
+                <p class="muted">Select a card to load preview.</p>
+              </div>
+            </section>
+            <section class="file-web-panel">
+              <div class="file-web-header">
+                <h3>Size Tree</h3>
+                <span id="fileWebMeta" class="muted">Waiting for session...</span>
+              </div>
+              <div id="fileTreeAscii" class="file-tree-ascii"></div>
+              <div class="file-tree-legend">
+                <span><strong>[U]</strong> unresolved</span>
+                <span><strong>[K]</strong> keep</span>
+                <span><strong>[D]</strong> delete</span>
+              </div>
+            </section>
+            <div id="fileWebEmpty" class="muted file-web-empty">
+              Start or resume a session to populate the size-based file web.
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="tab-review" class="tab-panel">
+        <div id="reviewPanel" class="panel">
+          <div class="panel-header">
+            <h2>Review Queue</h2>
+          </div>
+          <div class="review-metrics">
+            <div><span>Delete</span><strong id="reviewDeleteCount">0</strong></div>
+            <div><span>Keep</span><strong id="reviewKeepCount">0</strong></div>
+            <div><span>Unresolved</span><strong id="reviewUnresolvedCount">0</strong></div>
+            <div><span>Reclaimable</span><strong id="reviewReclaimable">0 B</strong></div>
+          </div>
+          <div class="review-columns">
+            <div class="review-list">
+              <h3>Delete Queue</h3>
+              <div id="deleteList"></div>
+            </div>
+            <div class="review-list">
+              <h3>Keep Queue</h3>
+              <div id="keepList"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-summary" class="tab-panel">
+        <div id="summaryPanel" class="panel">
+          <div class="panel-header">
+            <h2>Session Summary</h2>
+          </div>
+          <div id="summaryContent">
+            <p class="muted">Run a session and apply or review decisions to populate summary stats.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-settings" class="tab-panel">
+        <div class="panel settings-panel">
+          <div class="panel-header">
+            <h2>Settings</h2>
+            <span class="muted">Applies locally on this device</span>
+          </div>
+          <div class="settings-grid">
+            <section class="settings-card">
+              <h3>Scan & Safety</h3>
+              <label class="setting-item"><input id="settingIncludeHidden" type="checkbox"> Include hidden/system files when scanning</label>
+              <label class="setting-item"><input id="settingConfirmApply" type="checkbox"> Always confirm before moving to Recycle Bin</label>
+              <label class="setting-item"><input id="settingAutoOpenReview" type="checkbox"> Auto-open Review Queue when deck finishes</label>
+            </section>
+
+            <section class="settings-card">
+              <h3>Session Behavior</h3>
+              <label class="setting-item"><input id="settingAutoResume" type="checkbox"> Auto-resume previous session on launch</label>
+              <label class="setting-item"><input id="settingShowSplash" type="checkbox"> Show welcome splash on startup</label>
+              <label class="setting-item setting-inline">
+                <span>Default sort mode</span>
+                <select id="settingDefaultSort">
+                  <option value="random">Random</option>
+                  <option value="size_desc">Largest First</option>
+                  <option value="newest">Newest First</option>
+                </select>
+              </label>
+            </section>
+
+            <section class="settings-card">
+              <h3>Controls</h3>
+              <label class="setting-item setting-inline">
+                <span>Swipe threshold</span>
+                <input id="settingSwipeThreshold" type="range" min="60" max="180" step="5">
+                <strong id="settingSwipeThresholdValue"></strong>
+              </label>
+              <label class="setting-item setting-inline">
+                <span>Cards per page</span>
+                <input id="settingDeckPageLimit" type="range" min="12" max="48" step="2">
+                <strong id="settingDeckPageLimitValue"></strong>
+              </label>
+            </section>
+
+            <section class="settings-card">
+              <h3>Theme</h3>
+              <div class="theme-grid">
+                <button class="theme-tile" data-theme="sunset" title="Sunset">
+                  <span class="theme-name">Sunset</span>
+                  <span class="theme-mini sunset">
+                    <i class="mini-top"></i><i class="mini-side"></i><i class="mini-card"></i>
+                  </span>
+                </button>
+                <button class="theme-tile" data-theme="ocean" title="Ocean">
+                  <span class="theme-name">Ocean</span>
+                  <span class="theme-mini ocean">
+                    <i class="mini-top"></i><i class="mini-side"></i><i class="mini-card"></i>
+                  </span>
+                </button>
+                <button class="theme-tile" data-theme="forest" title="Forest">
+                  <span class="theme-name">Forest</span>
+                  <span class="theme-mini forest">
+                    <i class="mini-top"></i><i class="mini-side"></i><i class="mini-card"></i>
+                  </span>
+                </button>
+                <button class="theme-tile" data-theme="dusk" title="Dusk">
+                  <span class="theme-name">Dusk</span>
+                  <span class="theme-mini dusk">
+                    <i class="mini-top"></i><i class="mini-side"></i><i class="mini-card"></i>
+                  </span>
+                </button>
+                <button class="theme-tile" data-theme="dark" title="Dark">
+                  <span class="theme-name">Dark</span>
+                  <span class="theme-mini dark">
+                    <i class="mini-top"></i><i class="mini-side"></i><i class="mini-card"></i>
+                  </span>
+                </button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <section id="tutorialOverlay" class="tutorial-overlay hidden" aria-live="polite">
+    <div id="tutorialTooltip" class="tutorial-tooltip">
+      <div id="tutorialStepTitle" class="tutorial-step">Quick Tutorial</div>
+      <p id="tutorialText"></p>
+      <button id="tutorialDismissBtn" class="ghost-btn">Skip tutorial</button>
+    </div>
+  </section>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+*.pyc
+decksweep.db
+.pytest_cache/
+.pytest_tmp/
+tests_tmp/
+.testdata/
