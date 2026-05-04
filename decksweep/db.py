@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import sqlite3
 import threading
+import os
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
 APP_ROOT = Path(__file__).resolve().parent.parent
-DB_PATH = APP_ROOT / "decksweep.db"
+if os.getenv("VERCEL"):
+    DB_PATH = Path("/tmp/decksweep.db")
+else:
+    DB_PATH = APP_ROOT / "decksweep.db"
 DB_LOCK = threading.RLock()
 
 
